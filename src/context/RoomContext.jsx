@@ -12,27 +12,28 @@ const WS = 'http://192.168.1.121:8000';
 export const RoomContext = createContext(null);
 
 
-const ws =socketIO(WS);
-const RoomProvider = ({children}) => {
+const ws = socketIO(WS);
+const RoomProvider = ({ children }) => {
     const navigate = useNavigate()
     const [me, setMe] = useState()
     const [videoStream, setVideoStream] = useState()
     const [screenStream, setScreenStream] = useState()
-    const [customerId, setCustomerId] = useState('')
-    const [ peers, dispatch] = useReducer(PeerReducer, {})
+    const [userId, setUserId] = useState('')
+    const [getUserType, setUserType] = useState('')
+    const [peers, dispatch] = useReducer(PeerReducer, {})
 
-    const enterRoom = useCallback(({roomId}) => {
-        navigate(`/room/${roomId}/${1}`)
-        console.log('Room created with ID=> ', roomId)
+    const enterRoom = useCallback(({ roomId, userType }) => {
+        setUserType(userType)
+        navigate(`/room/${roomId}/${userType}`)
     }, [navigate])
 
-    const getUsers = useCallback(({roomId, users}) => {
+    const getUsers = useCallback(({ roomId, users }) => {
         console.log(`User Joined the room: ${roomId}, all users => `, users)
     }, [])
-    const removePeer = useCallback(({ peerId}) => {
-        console.log(`Users left the room: ${peerId}`)
+    const removePeer = useCallback(({ peerId }) => {
+        // console.log(`Users left the room: ${peerId}`)
         dispatch(removePeerAction(peerId))
-    },[])
+    }, [])
 
     const shareScreen = () => {
         try {
@@ -50,7 +51,7 @@ const RoomProvider = ({children}) => {
         setMe(peer)
 
         try {
-            navigator.mediaDevices.getUserMedia({video:true, audio:false}).then((stream) => {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then((stream) => {
                 setVideoStream(stream)
             })
         } catch (err) {
@@ -65,41 +66,39 @@ const RoomProvider = ({children}) => {
             ws.off('get-users', getUsers)
             ws.off("user-disconnected", removePeer);
         }
-    },[enterRoom, getUsers, removePeer])
+    }, [enterRoom, getUsers, removePeer])
 
-    useEffect(()=> {
-        if(!me) return
-        if(!videoStream) return
-        
-        ws.on('user-joined', ({peerId}) => {
-            console.log('user-joined ===> ', peerId)
+    useEffect(() => {
+        if (!me) return
+        if (!videoStream) return
+        ws.on('user-joined', ({ peerId }) => {
+
             const call = me.call(peerId, videoStream)
-            call.on('stream', (peerStream) =>{
-                dispatch(addPeerAction(peerId, peerStream))
+            call.on('stream', () => {
+                dispatch(addPeerAction(peerId, videoStream))
             })
         })
 
         me.on('call', (call) => {
             call.answer(videoStream)
-            call.on('stream', (peerStream) =>{
+            call.on('stream', (peerStream) => {
                 dispatch(addPeerAction(call.peer, peerStream))
             })
         })
 
     }, [me, videoStream])
 
-    console.log(peers)
-
     return (
-        <RoomContext.Provider 
-        value={{
-            ws, me, peers,
-            videoStream,
-            screenStream,
-            customerId,
-            shareScreen,
-            setCustomerId
-        }}>
+        <RoomContext.Provider
+            value={{
+                ws, me, peers,
+                videoStream,
+                screenStream,
+                userId,
+                getUserType,
+                shareScreen,
+                setUserId
+            }}>
             {children}
         </RoomContext.Provider>
     )

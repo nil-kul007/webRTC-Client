@@ -2,14 +2,14 @@ import { useContext, useState } from 'react';
 import JoinButton from '../component/Button'
 import { RoomContext } from '../context/RoomContext';
 
-const Home = () => {
+const CustomerSupport = () => {
   const { ws, userId, setUserId } = useContext(RoomContext)
   const [warning, setWarning] = useState('')
 
   const createRoom = () => {
     setWarning('')
     // console.log('Create a room...')
-    ws.emit('create-room', { userId: btoa(userId), userType: 'user' })
+    ws.emit('create-room', { userId: window.btoa(userId), userType: 'support' })
     // ws.emit('create-room', { userId })
   }
   
@@ -32,4 +32,4 @@ const Home = () => {
   )
 }
 
-export default Home
+export default CustomerSupport
